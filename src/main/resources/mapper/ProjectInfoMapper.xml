@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wry.generator.mapper.ProjectInfoMapper">
+    <resultMap id="BaseResultMap" type="com.wry.generator.entity.ProjectInfo">
+        <!--@mbg.generated-->
+        <!--@Table project_info-->
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="main_path" jdbcType="LONGVARCHAR" property="mainPath"/>
+        <result column="package_name" jdbcType="LONGVARCHAR" property="packageName"/>
+        <result column="module_name" jdbcType="LONGVARCHAR" property="moduleName"/>
+        <result column="author" jdbcType="LONGVARCHAR" property="author"/>
+        <result column="email" jdbcType="LONGVARCHAR" property="email"/>
+        <result column="table_prefix" jdbcType="LONGVARCHAR" property="tablePrefix"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        <!--@mbg.generated-->
+        id, main_path, package_name, module_name, author, email, table_prefix
+    </sql>
+    <select id="selectProjectInfoList" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from project_info
+        <where>
+            <if test="searchValue != null and searchValue != ''">
+                main_path like '%' || #{searchValue,jdbcType=VARCHAR} || '%'
+                        or package_name like '%' || #{searchValue,jdbcType=VARCHAR} || '%'
+                        or module_name like '%' || #{searchValue,jdbcType=VARCHAR} || '%'
+                        or author like '%' || #{searchValue,jdbcType=VARCHAR} || '%'
+                        or email like '%' || #{searchValue,jdbcType=VARCHAR} || '%'
+            </if>
+        </where>
+    </select>
+</mapper>

@@ -1,0 +1,33 @@
+server:
+  port: 8011
+
+spring:
+  datasource:
+    master:
+      username: sa
+      password: ""
+      url: jdbc:sqlite::resource:db/datadb.sqlite
+      driver-class-name: org.sqlite.JDBC
+      schema: db/datadb.sql
+
+  jackson:
+    time-zone: GMT+8
+    date-format: yyyy-MM-dd HH:mm:ss
+  resources:
+    static-locations: classpath:/static/,classpath:/views/
+
+
+mybatis-plus:
+  mapperLocations: classpath:mapper/**/*.xml
+
+
+pagehelper:
+  reasonable: true
+  supportMethodsArguments: true
+  params: count=countSql
+
+
+logging:
+  level:
+    com.wry.generator.mapper: debug
+

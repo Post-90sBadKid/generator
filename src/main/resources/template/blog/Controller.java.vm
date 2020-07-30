@@ -1,0 +1,27 @@
+package ${package}.${moduleName}.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+
+import ${package}.${moduleName}.service.${className}Service;
+import ${package}.result.Result;
+import ${package}.result.ResultEnum;
+import io.swagger.annotations.Api;
+
+/**
+ * ${comments}
+ *
+ * @author ${author}
+ * @email ${email}
+ * @date ${datetime}
+ */
+@RestController
+@RequestMapping("${moduleName}/${pathName}")
+@Api(tags = "${comments}")
+public class ${className}Controller {
+    @Autowired
+    private ${className}Service ${classJavaName}Service;
+
+
+}
