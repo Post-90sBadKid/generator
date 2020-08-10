@@ -16,7 +16,6 @@
 
 package com.wry.generator.mapper;
 
-import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;

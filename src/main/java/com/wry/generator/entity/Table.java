@@ -17,14 +17,23 @@ public class Table {
      * 表的名称
      */
     private String tableName;
+
     /**
      * 表的备注
      */
     private String comments;
+
+    /**
+     * 主键列 (多个使用逗号隔开)
+     */
+    private String key;
+
     /**
      * 表的主键
      */
     private Column pk;
+
+
     /**
      * 表的列名(不包含主键)
      */

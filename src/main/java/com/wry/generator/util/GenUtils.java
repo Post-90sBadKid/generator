@@ -2,7 +2,6 @@ package com.wry.generator.util;
 
 
 import com.wry.generator.entity.Column;
-import com.wry.generator.entity.DataType;
 import com.wry.generator.entity.ProjectInfo;
 import com.wry.generator.entity.Table;
 import com.wry.generator.exception.CustomException;
@@ -11,12 +10,10 @@ import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.WordUtils;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.Velocity;
 
-import javax.validation.constraints.NotBlank;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
@@ -33,42 +30,34 @@ import java.util.zip.ZipOutputStream;
  */
 public class GenUtils {
 
-    private static String currentTableName;
-
     /**
      * 生成代码
      *
      * @param table        数据库表对象
-     * @param columns      表的列信息
      * @param projectInfo  项目配置信息
      * @param dataTypeMap  java类型和数据库类型对照
      * @param templatePath 模板路径
      * @param zip          压缩工具类
      */
-    public static void generatorCode(Map<String, String> table, List<Map<String, String>> columns, ProjectInfo projectInfo, Map<String, String> dataTypeMap, String templatePath, ZipOutputStream zip) {
+    public static void generatorCode(Table table, ProjectInfo projectInfo, Map<String, String> dataTypeMap, String templatePath, ZipOutputStream zip) {
+
 
         boolean hasBigDecimal = false;
         boolean hasList = false;
         //表信息
-        Table Table = new Table();
-        Table.setTableName(table.get("tableName"));
-        Table.setComments(table.get("tableComment"));
+
         //表名转换成Java类名
-        String className = tableToJava(Table.getTableName(), projectInfo.getTablePrefix().split(","));
-        Table.setClassName(className);
-        Table.setClassJavaName(StringUtils.uncapitalize(className));
+        String className = StrUtils.tableToJava(table.getTableName(), projectInfo.getTablePrefix().split(","));
+        table.setClassName(className);
+        table.setClassJavaName(StringUtils.uncapitalize(className));
 
         //列信息
         List<Column> columsList = new ArrayList<>();
-        for (Map<String, String> column : columns) {
-            Column col = new Column();
-            col.setColumnName(column.get("columnName"));
-            col.setDataType(column.get("dataType"));
-            col.setComments(column.get("columnComment"));
-            col.setExtra(column.get("extra"));
+
+        for (Column col : table.getColumns()) {
 
             //列名转换成Java属性名
-            String attrName = columnToJava(col.getColumnName());
+            String attrName = StrUtils.columnToJava(col.getColumnName());
             col.setAttrName(attrName);
             col.setAttrJavaName(StringUtils.uncapitalize(attrName));
 
@@ -83,18 +72,16 @@ public class GenUtils {
             if (!hasList && "array".equals(col.getExtra())) {
                 hasList = true;
             }
-            //是否主键
-            if ("PRI".equalsIgnoreCase(column.get("columnKey")) && Table.getPk() == null) {
-                Table.setPk(col);
+            //是否是主键
+            if (StrUtils.contains(col.getColumnName(), table.getKey().split(","))) {
+                table.setPk(col);
             }
-
             columsList.add(col);
         }
-        Table.setColumns(columsList);
 
         //没主键，则第一个字段为主键
-        if (Table.getPk() == null) {
-            Table.setPk(Table.getColumns().get(0));
+        if (table.getPk() == null) {
+            table.setPk(table.getColumns().get(0));
         }
 
         //设置velocity资源加载器
@@ -103,20 +90,26 @@ public class GenUtils {
         Velocity.init(prop);
         String mainPath = projectInfo.getMainPath();
         mainPath = StringUtils.isBlank(mainPath) ? "com.wry" : mainPath;
+        String packageStr = mainPath;
+        String packageName = projectInfo.getPackageName();
+        if (!Objects.isNull(packageName) && !packageName.isEmpty()) {
+            packageStr += "." + packageName;
+        }
+        String moduleName = projectInfo.getModuleName();
         //封装模板数据
         Map<String, Object> map = new HashMap<>();
-        map.put("tableName", Table.getTableName());
-        map.put("comments", Table.getComments());
-        map.put("pk", Table.getPk());
-        map.put("className", Table.getClassName());
-        map.put("classname", Table.getClassJavaName());
-        map.put("pathName", Table.getClassJavaName().toLowerCase());
-        map.put("columns", Table.getColumns());
+        map.put("tableName", table.getTableName());
+        map.put("comments", table.getComments() == null || table.getComments().isEmpty() ? "" : table.getComments());
+        map.put("pk", table.getPk());
+        map.put("className", table.getClassName());
+        map.put("classJavaName", table.getClassJavaName());
+        map.put("pathName", table.getClassJavaName());
+        map.put("columns", table.getColumns());
         map.put("hasBigDecimal", hasBigDecimal);
         map.put("hasList", hasList);
         map.put("mainPath", mainPath);
-        map.put("package", mainPath + projectInfo.getPackageName());
-        map.put("moduleName", projectInfo.getModuleName());
+        map.put("package", packageStr);
+        map.put("moduleName", moduleName);
         map.put("author", projectInfo.getAuthor());
         map.put("email", projectInfo.getEmail());
         map.put("datetime", DateUtils.format(new Date(), DateUtils.DATE_TIME_PATTERN));
@@ -132,15 +125,16 @@ public class GenUtils {
 
             try {
                 //添加到zip
-                zip.putNextEntry(new ZipEntry(getFileName(template, Table.getClassName(), projectInfo.getPackageName(), projectInfo.getModuleName())));
+                zip.putNextEntry(new ZipEntry(getFileName(template, table.getClassName(), packageStr, moduleName)));
                 IOUtils.write(sw.toString(), zip, "UTF-8");
                 IOUtils.closeQuietly(sw);
                 zip.closeEntry();
             } catch (IOException e) {
-                throw new CustomException("123", "渲染模板失败，表名：" + Table.getTableName() + e);
+                throw new CustomException("123", "渲染模板失败，表名：" + table.getTableName() + e);
             }
         }
     }
+
 
     public static List<String> getTemplates(String templatePath) {
         List<String> templates = new ArrayList<>();
@@ -161,24 +155,6 @@ public class GenUtils {
         return templates;
     }
 
-    /**
-     * 列名转换成Java属性名
-     */
-    public static String columnToJava(String columnName) {
-        return WordUtils.capitalizeFully(columnName, new char[]{'_'}).replace("_", "");
-    }
-
-    /**
-     * 表名转换成Java类名
-     */
-    public static String tableToJava(String tableName, String[] tablePrefixArray) {
-        if (null != tablePrefixArray && tablePrefixArray.length > 0) {
-            for (String tablePrefix : tablePrefixArray) {
-                tableName = tableName.replace(tablePrefix, "");
-            }
-        }
-        return columnToJava(tableName);
-    }
 
     /**
      * 获取配置信息
@@ -194,11 +170,15 @@ public class GenUtils {
     /**
      * 获取文件名
      */
-    public static String getFileName(String template, String className, String packageName, String moduleName) {
+    public static String getFileName(String template, String className, String packageStr, String moduleName) {
         String packagePath = "main" + File.separator + "java" + File.separator;
-        if (StringUtils.isNotBlank(packageName)) {
-            packagePath += packageName.replace(".", File.separator) + File.separator + moduleName + File.separator;
+        if (StringUtils.isNotBlank(packagePath)) {
+            packagePath += packageStr.replace(".", File.separator) + File.separator;
         }
+        if (StringUtils.isNotBlank(moduleName)) {
+            packagePath += moduleName + File.separator;
+        }
+
         if (template.contains("Entity.java.vm")) {
             return packagePath + "entity" + File.separator + className + ".java";
         }
@@ -250,4 +230,5 @@ public class GenUtils {
         name = name.replaceAll("\\.", "_");
         return name;
     }
+
 }

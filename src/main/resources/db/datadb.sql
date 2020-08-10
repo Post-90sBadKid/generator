@@ -3,8 +3,8 @@ drop table if exists data_type;
 create table data_type
 (
     id           integer primary key autoincrement,
-    db_type    text not null,
-    java_type text not null
+    db_type    text  null,
+    java_type text  null
 );
 
 insert into data_type(db_type, java_type)

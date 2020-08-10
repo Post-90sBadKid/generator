@@ -7,6 +7,9 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
+
 /**
  * 全局异常处理类
  */
@@ -37,7 +40,6 @@ public class CustomControllerAdvice {
     public Result errorHandler(Exception ex) {
         ex.printStackTrace();
         logger.error(ex.getMessage());
-
         return Result.error("-1", ex.getMessage());
 
     }
